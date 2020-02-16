@@ -1,5 +1,7 @@
 from app import app
-
-@app.route('/')
+from flask import render_template, flash
+from .web_forms import MapURLForm
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return "Hello World!"
+    form = MapURLForm()
+    return render_template('generate.html', form=form)

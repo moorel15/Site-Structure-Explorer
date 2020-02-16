@@ -1,0 +1,43 @@
+#Center {
+  background-color: #DCDCDC;
+  padding: 10px;
+}
+
+#URL {
+  background-color: #DCDCDC;
+  border-style: solid;
+  border-width: 3px;
+  border-color: white;
+  color: #343a40;
+  border-radius: 50px 0px 0px 50px;
+  padding: 15px;
+  margin-right: 0px;
+  margin-top: 5%;
+  float: left;
+  display: inline;
+  width: 65%;
+  margin-bottom: 2%;
+  font-size: 20px;
+}
+#searchButton {
+  background-color: #343a40;
+  border-style: solid;
+  border-width: 3px;
+  border-color: white;
+  border-radius: 0px 50px 50px 0px;
+  margin-left: 0;
+  margin-top: 5%;
+  color: white;
+  float: left;
+  display: inline;
+  width: 35%;
+  padding: 15px;
+  margin-bottom: 2%;
+  font-size: 20px;
+}
+
+#searchButton:hover {
+  background-color: white;
+  border-color: #343a40;
+  color: #343a40;
+}
