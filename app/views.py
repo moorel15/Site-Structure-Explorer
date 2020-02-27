@@ -2,6 +2,9 @@ from app import app
 from flask import render_template, flash
 from .web_forms import MapURLForm
 from urllib2 import urlopen
+from bs4 import BeautifulSoup
+import re
+from anytree import Node, RenderTree
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -16,6 +19,7 @@ def index():
         print("Delay: " + str(delay))
         print("Disallowed size: " + str(len(disallowed)))
         print("Allowed size: " + str(len(allowed)))
+        buildTree(("https://" + URL), delay, disallowed, allowed)
     return render_template('generate.html', form=form)
 
 
@@ -52,11 +56,21 @@ def getRobotTxt(URL):
     returnTuple = (delay, disallowed, allowed)
     return returnTuple
 
+
+def buildTree(URL, delay, disallowed, allowed):
+    scrapingQueue = []
+    htmlSoupObj = BeautifulSoup(urlopen(URL), 'html.parser')
+    title = htmlSoupObj.find_all('title')
+    for link in htmlSoupObj.find_all('a', attrs={'href': re.compile("^https://")}):
+        print(link.get('href'))
+
+
 def startLoop(list, index):
     for i in range(index, len(list)):
         yield list[i]
     for i in range(index):
         yield list[i]
+
 
 def isLineEmpty(line):
     return len(line.strip()) < 1
