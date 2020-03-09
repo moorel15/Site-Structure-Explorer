@@ -125,6 +125,7 @@ def collectNodes(url, scrapingQueue, local, otherSites):
 
     for i in local:
         scrapingQueue.append(tuple((parent, i)))
+    del local[:]
 
 
 def checkUrlBanned(url, disallowed):
