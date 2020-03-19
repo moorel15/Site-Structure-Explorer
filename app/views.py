@@ -6,8 +6,12 @@ from bs4 import BeautifulSoup
 import requests
 import requests.exceptions
 from urlparse import urlparse, urlsplit
+import mechanize
 import time
 from anytree import Node, RenderTree
+from anytree.exporter import DotExporter
+
+notfoundCounter = 0
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -61,70 +65,85 @@ def getRobotTxt(URL):
 
 
 def buildTree(startUrl, delay, disallowed):
+    start = time.time()
     scrapingQueue = []
     scraped = []
     local = []
     otherSites = []
     pages = 0
     i = 0
-    collectNodes(startUrl, scrapingQueue, local, otherSites)
-    while len(scrapingQueue):
+    scrapeLimit = 5
+    # Begin scraping on URL inputted by the user. Then loop for consequent links discovered until page count = 100.
+    parent = "root"
+    collectNodes(startUrl, scrapingQueue, local, otherSites, parent)
+    pages += 1
+    while i < len(scrapingQueue):
         urlAlreadyScraped = False
-        if pages == 100:
+        if pages == scrapeLimit:
             break
-        url = scrapingQueue[i][1]
+        url = scrapingQueue[i][2]
+        parent = scrapingQueue[i][1]
         for page in scraped:
-            if url == page:
-                print "here"
+            if str(url) == str(page):
                 urlAlreadyScraped = True
                 break
         if not urlAlreadyScraped:
             if not checkUrlBanned(url, disallowed):
                 time.sleep(delay/1000)
-                collectNodes(url, scrapingQueue, local, otherSites)
+                collectNodes(url, scrapingQueue, local, otherSites, parent)
                 scraped.append(url)
                 pages += 1
         i += 1
-    print "Results after 100 pages scraped:\n\n"
-    print str(len(scrapingQueue))
+    print "Cleaning up the queue..."
+    cleanUpQueue(scrapingQueue)
+    createStructure(scrapingQueue)
+    print "\nResults after " + str(pages) + " pages scraped:\n"
+    print "Number of pages scraped on site: " + str(len(scrapingQueue))
+    end = time.time()
+    minutes = (end-start)/60
+    print "Time elapsed: " + str(minutes) + "m"
 
 
-def collectNodes(url, scrapingQueue, local, otherSites):
+def collectNodes(url, scrapingQueue, local, otherSites, parent):
     try:
         resp = requests.get(url)
     except(requests.exceptions.MissingSchema, requests.exceptions.ConnectionError, requests.exceptions.InvalidURL,
            requests.exceptions.InvalidSchema):
         print "Error scraping: " + str(url)
         return
-
     linksplit = urlsplit(url)
     root = "{0.netloc}".format(linksplit)
     root = root.replace("www.", "")
     siteRoot = "{0.scheme}://{0.netloc}".format(linksplit)
     path = url[:url.rfind('/')+1] if '/' in linksplit.path else url
-
     soupObj = BeautifulSoup(resp.text, "html.parser")
-    newLink = ""
-    try:
-        parent = soupObj.title.string
-    except(AttributeError):
-        parent = "No Parent Title Found"
-    print("Pages found: " + str(len(soupObj.findAll('a'))))
+    parent = parent
+    print("URL: " + url + ", Pages found: " + str(len(soupObj.findAll('a'))))
+
     for link in soupObj.findAll('a'):
-        a = link.attrs["href"] if "href" in link.attrs else ''
+        a = link.attrs["href"] if "href" in link.attrs else ""
+        try:
+            title = (link.string[:50] + '...') if len(link.string) > 50 else link.string
+            title = ' '.join(title.split())
+        except TypeError:
+            title = ""
         if a.startswith('/'):
             newLink = siteRoot + a
-            local.append(newLink)
+            if title == "":
+                title = generateTitle(newLink)
+            local.append(tuple((title, newLink)))
         elif root in a:
-            local.append(a)
+            if title == "":
+                title = generateTitle(a)
+            local.append(tuple((title, a)))
         elif not a.startswith('http'):
-            newLink = path + a
-            local.append(newLink)
+            if title == "":
+                title = generateTitle(a)
+            local.append(tuple((title, a)))
         else:
             otherSites.append(a)
-
     for i in local:
-        scrapingQueue.append(tuple((parent, i)))
+        scrapingQueue.append(tuple((parent, i[0], i[1])))
     del local[:]
 
 
@@ -137,6 +156,44 @@ def checkUrlBanned(url, disallowed):
         elif i in url:
             return True
     return False
+
+
+def cleanUpQueue(scrapingQueue):
+    for i in scrapingQueue:
+        if i[2] == "":
+            index = scrapingQueue.index(i)
+            del scrapingQueue[index]
+
+
+def createStructure(scrapingQueue):
+    nodes = {}
+    root = Node('root')
+    nodes['root'] = root
+    for page in scrapingQueue:
+        parent = page[0].encode('ascii', 'ignore').decode('ascii')
+        title = page[1].encode('ascii', 'ignore').decode('ascii')
+        nodes[title] = Node(title, parent=nodes[parent])
+    # print the final structure
+    print("\n\n\nPrinting tree...")
+    for pre, fill, node in RenderTree(root):
+        name = node.name
+        print("%s%s" % (pre, name))
+    #create image
+    DotExporter(root,
+                nodeattrfunc=lambda node: "shape=diamond",
+                edgeattrfunc=lambda parent, child: "style=bold"
+                ).to_picture("root.png")
+
+def generateTitle(url):
+    try:
+        browser = mechanize.Browser()
+        browser.open(url)
+        title = browser.title()
+    except Exception:
+        global notfoundCounter
+        notfoundCounter += 1
+        title = "Link of non text type - " + str(notfoundCounter)
+    return title
 
 
 def startLoop(list, index):
