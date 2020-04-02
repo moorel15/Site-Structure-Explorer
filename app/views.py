@@ -40,6 +40,11 @@ def getJSON():
     return JsonTreeStructure
 
 
+@app.route('/getLinks', methods=['GET', 'POST'])
+def getLinks():
+    return json.dumps(finalQueue)
+
+
 @app.route('/getStats', methods=['GET', 'POST'])
 def getStats():
     data = {"minutes": str(minutes), "pagesPerMinute": str(pagesPerMinute), "titleNotFound": str(notfoundCounter), "pagesFound": str(len(finalQueue)), "delay": str(delay/1000)}
@@ -101,7 +106,7 @@ def buildTree(startUrl, delay, disallowed):
     otherSites = []
     pages = 0
     i = 0
-    scrapeLimit = 2
+    scrapeLimit = 20
     # Begin scraping on URL inputted by the user. Then loop for consequent links discovered until page count = 100.
     parent = "root"
     collectNodes(startUrl, scrapingQueue, local, otherSites, parent)
@@ -123,7 +128,6 @@ def buildTree(startUrl, delay, disallowed):
                 scraped.append(url)
                 pages += 1
         i += 1
-    print "Cleaning up the queue..."
     cleanUpQueue(scrapingQueue)
     createStructure(scrapingQueue)
     end = time.time()
@@ -151,7 +155,6 @@ def collectNodes(url, scrapingQueue, local, otherSites, parent):
     soupObj = BeautifulSoup(resp.text, "html.parser")
     parent = parent
     print("URL: " + url + ", Pages found: " + str(len(soupObj.findAll('a'))))
-
     for link in soupObj.findAll('a'):
         a = link.attrs["href"] if "href" in link.attrs else ""
         try:
