@@ -1,5 +1,7 @@
+import json
+
 from app import app
-from flask import render_template, flash
+from flask import render_template, flash, redirect
 from .web_forms import MapURLForm
 from urllib2 import urlopen
 from bs4 import BeautifulSoup
@@ -9,9 +11,14 @@ from urlparse import urlparse, urlsplit
 import mechanize
 import time
 from anytree import Node, RenderTree
-from anytree.exporter import DotExporter
+from anytree.exporter import DotExporter, JsonExporter
 
 notfoundCounter = 0
+finalQueue = []
+JsonTreeStructure = {}
+minutes = 0
+pagesPerMinute = 0
+delay = 0
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -24,7 +31,19 @@ def index():
         disallowed = info[1]
         allowed = info[2]
         buildTree(("https://" + URL), delay, disallowed)
+        return redirect('/result')
     return render_template('generate.html', form=form)
+
+
+@app.route('/getJSON', methods=['GET', 'POST'])
+def getJSON():
+    return JsonTreeStructure
+
+
+@app.route('/getStats', methods=['GET', 'POST'])
+def getStats():
+    data = {"minutes": str(minutes), "pagesPerMinute": str(pagesPerMinute), "titleNotFound": str(notfoundCounter), "pagesFound": str(len(finalQueue)), "delay": str(delay/1000)}
+    return json.dumps(data)
 
 
 @app.route('/result', methods=['GET', 'POST'])
@@ -36,8 +55,9 @@ def getRobotTxt(URL):
     lines = []
     disallowed = []
     allowed = []
-    delay = 0
     length = len(URL)
+    global delay
+    delay = 0
     robots = 'https://' + URL[4:length] + '/robots.txt'
     try:
         contents = urlopen(robots)
@@ -59,9 +79,18 @@ def getRobotTxt(URL):
     except Exception:
         print("Error encountered: Unable to establish link to robot.txt file resorting to default values")
     if delay == 0:
+        global delay
         delay = 2000
     returnTuple = (delay, disallowed, allowed)
     return returnTuple
+
+
+def buildJSONQueue(scrapingQueue):
+    jsonQueue = []
+    for i in scrapingQueue:
+        json = {"name": i[1], "parent": i[0], "link": i[2]}
+        jsonQueue.append(json)
+    return jsonQueue
 
 
 def buildTree(startUrl, delay, disallowed):
@@ -72,7 +101,7 @@ def buildTree(startUrl, delay, disallowed):
     otherSites = []
     pages = 0
     i = 0
-    scrapeLimit = 5
+    scrapeLimit = 2
     # Begin scraping on URL inputted by the user. Then loop for consequent links discovered until page count = 100.
     parent = "root"
     collectNodes(startUrl, scrapingQueue, local, otherSites, parent)
@@ -89,7 +118,7 @@ def buildTree(startUrl, delay, disallowed):
                 break
         if not urlAlreadyScraped:
             if not checkUrlBanned(url, disallowed):
-                time.sleep(delay/1000)
+                time.sleep(delay / 1000)
                 collectNodes(url, scrapingQueue, local, otherSites, parent)
                 scraped.append(url)
                 pages += 1
@@ -97,11 +126,14 @@ def buildTree(startUrl, delay, disallowed):
     print "Cleaning up the queue..."
     cleanUpQueue(scrapingQueue)
     createStructure(scrapingQueue)
-    print "\nResults after " + str(pages) + " pages scraped:\n"
-    print "Number of pages scraped on site: " + str(len(scrapingQueue))
     end = time.time()
-    minutes = (end-start)/60
-    print "Time elapsed: " + str(minutes) + "m"
+    global minutes
+    minutes = (end - start) / 60
+    global pagesPerMinute
+    pagesPerMinute = len(scrapingQueue) / minutes
+    global finalQueue
+    finalQueue = buildJSONQueue(scrapingQueue)
+    return finalQueue
 
 
 def collectNodes(url, scrapingQueue, local, otherSites, parent):
@@ -115,7 +147,7 @@ def collectNodes(url, scrapingQueue, local, otherSites, parent):
     root = "{0.netloc}".format(linksplit)
     root = root.replace("www.", "")
     siteRoot = "{0.scheme}://{0.netloc}".format(linksplit)
-    path = url[:url.rfind('/')+1] if '/' in linksplit.path else url
+    path = url[:url.rfind('/') + 1] if '/' in linksplit.path else url
     soupObj = BeautifulSoup(resp.text, "html.parser")
     parent = parent
     print("URL: " + url + ", Pages found: " + str(len(soupObj.findAll('a'))))
@@ -178,11 +210,14 @@ def createStructure(scrapingQueue):
     for pre, fill, node in RenderTree(root):
         name = node.name
         print("%s%s" % (pre, name))
-    #create image
+    # create image
     DotExporter(root,
-                nodeattrfunc=lambda node: "shape=diamond",
+                nodeattrfunc=lambda node: "fixedsize=true, height=2, width=2, shape=diamond",
                 edgeattrfunc=lambda parent, child: "style=bold"
                 ).to_picture("root.png")
+    global JsonTreeStructure
+    JsonTreeStructure = JsonExporter().export(root)
+
 
 def generateTitle(url):
     try:
@@ -190,9 +225,9 @@ def generateTitle(url):
         browser.open(url)
         title = browser.title()
     except Exception:
+        title = "Title Not Found - " + str(notfoundCounter)
         global notfoundCounter
         notfoundCounter += 1
-        title = "Link of non text type - " + str(notfoundCounter)
     return title
 
 

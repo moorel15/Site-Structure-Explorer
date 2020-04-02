@@ -17,17 +17,6 @@
                 </p>
             </form>
           </div>
-          <div>
-              {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                  {% for message in messages %}
-                    <p>
-                      {{ message }}
-                    </p>
-                  {% endfor %}
-                {% endif %}
-              {% endwith %}
-          </div>
           <div id="features">
             <h2>Features</h2>
             <p>Update with all the possible features once completed, eg printing site map etc.</p>

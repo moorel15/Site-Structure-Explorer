@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+
 {% block content %}
+<script src="../static/generateTree.js"></script>
 <div class="container-fluid">
   <div class="row">
     <div class="col-sm-12">
@@ -9,14 +11,23 @@
     </div>
   </div>
   <div class="row">
-      <div class="col-sm-12 col-md-3">
+      <div class="col-sm-12 col-md-8">
         <div id="hierarchy">
           <h2>Hierarchy</h2>
+            <div class="tree">
+                <!--Generated tree goes inside here-->
+            </div>
         </div>
       </div>
-      <div class="col-sm-12 col-md-9">
+      <div class="col-sm-12 col-md-4">
         <div id="details">
-          <h2>Children of selected node</h2>
+          <h2>Statistics for your map</h2>
+            <div class="stats">
+                <!-- Generated Statistics goes here-->
+            </div>
+        </div>
+        <div id="links">
+            <h2>Links to pages scraped</h2>
         </div>
       </div>
   </div>
