@@ -1,5 +1,7 @@
+
+
 $(document).ready(function() {
-    
+   
     //set up to be accepted by the server when sending the request.
     var csrf_token = $('meta[name=csrf-token]').attr('content');
     var pages = 0
@@ -27,7 +29,7 @@ $(document).ready(function() {
             insert.append("<p>Politeness window: " + data.delay + " secs</p>")
         },
         error: function(error) {
-            console.log(error)
+            console.log(error);
         }
     });
     
@@ -40,11 +42,19 @@ $(document).ready(function() {
             var data = JSON.parse(response)
             var insert = $(document).find('#links')
             for(i=0; i < data.length; i++) {
-                insert.append('<a href="' + data[i].link + '"><p>' + data[i].name + '</p></a>')
+                if (data[i].name.indexOf("Title Not Found") >= 0) {
+                    insert.append('<a href="' + data[i].link + '"><p>' + data[i].name + '</p></a>')
+                } else {
+                    var displayName = (data[i].name).replace(/[0-9]/g, '');
+                    if(displayName == "") {
+                        displayName = "Unknown URL type"
+                    }
+                    insert.append('<a href="' + data[i].link + '"><p>' + displayName + '</p></a>')
+                }
             }
         },
         error: function(error) {
-            console.log(error)
+            console.log(error);
         }
     });
     
@@ -54,50 +64,88 @@ $(document).ready(function() {
         url: '/getJSON',
         contentType: 'application/json; charset=utf-8',
         success: function(response) {
-            var data = JSON.parse(response)
-            var root = data.name
-            $(document).find("#tree").append("<ul id='structure'></ul>")
-            var insert = $(document).find("#structure")
-            var children = data.children
-            var layers = 0
-            var idCounter = 0
+            var data = JSON.parse(response);
+            var root = data.name;
+            $(document).find("#tree").append("<ul id='structure'></ul>");
+            var children = data.children;
+            var layers = 0;
+            var idCounter = 0;
             for(i=0;i<children.length;i++) {
+                var insert = $(document).find("#structure");
                 if(children[i].hasOwnProperty("children")) {
                     idCounter++;
-                    var parentID = "layer" + idCounter
-                    childrenQueue.push({parentID: parentID, children:children[i].children})
-                    insert.append("<li><span class='pointer'>" + children[i].name + "</span></li>")
-                    insert.append("<ul class='children' id='" + parentID + "'></ul>")
+                    var parentID = "layer" + idCounter;
+                    var parentIDchild = "layer" + idCounter + "c"
+                    childrenQueue.push({parentID: parentID, children:children[i].children});
+                    if(children[i].name.indexOf("Title Not Found") >= 0) {
+                        insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + "</span></li>");
+                    } else {
+                        var displayName = (children[i].name).replace(/[0-9]/g, '')
+                        if(displayName == "") {
+                            displayName = "Unknown URL type"
+                        }
+                        insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + displayName + "</span></li>");
+                    }
+                    insert = $(document).find("#" + parentIDchild)
+                    insert.append("<ul class='children' id='" + parentID + "'></ul>");
                 }else {
-                    insert.append("<li>" + children[i].name + "</li>")
+                    if(children[i].name.indexOf("Title Not Found") >= 0) {
+                        insert.append("<li>" + children[i].name + "</li>");  
+                    } else {
+                        var displayName = (children[i].name).replace(/[0-9]/g, '')
+                        if(displayName == "") {
+                                displayName = "Unknown URL type"
+                            }
+                        insert.append("<li>" + displayName + "</li>"); 
+                    }
+                    
                 }
             }
             while(layers < childrenQueue.length) {
-                layer = childrenQueue[layers]
-                children = layer.children
-                console.log(children)
-                var location = $(document).find("#" + layer.parentID)
-                console.log(location)
+                layer = childrenQueue[layers];
+                children = layer.children;
+                var location = $(document).find("#" + layer.parentID);
                 for(i=0;i<children.length;i++) {
                     if(children[i].hasOwnProperty("children")) {
                         idCounter++;
-                        var parentID = "layer" + idCounter
-                        childrenQueue.push({parentID: parentID, children:children[i].children})
-                        location.append("<li><span class='pointer'>" + children[i].name + "</span></li>")
-                        location.append("<ul class='children' id='" + parentID + "'></ul>")
+                        var parentID = "layer" + idCounter;
+                        var parentIDchild = "layer" + idCounter + "c"
+                        childrenQueue.push({parentID: parentID, children:children[i].children});
+                        if(children[i].name.indexOf("Title Not Found") >= 0) {
+                            location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + "</span></li>");
+                        } else {
+                            var displayName = (children[i].name).replace(/[0-9]/g, '')
+                            if(displayName == "") {
+                                displayName = "Title not obtained by scraper";
+                            }
+                            location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + displayName + "</span></li>");
+                        }
+                        location = $(document).find("#" + parentIDchild)
+                        location.append("<ul class='children' id='" + parentID + "'></ul>");
                     }else {
-                        location.append("<li>" + children[i].name + "</li>")
+                        if(children[i].name.indexOf("Title Not Found") >= 0) {
+                            location.append("<li>" + children[i].name + "</li>");
+                        } else {
+                            var displayName = (children[i].name).replace(/[0-9]/g, '');
+                            if(displayName == "") {
+                                displayName = "Title not obtained by scraper";
+                            }
+                            location.append("<li>" + displayName + "</li>");
+                        }
+                       
                     }
                 }
                 layers++;
-                
-                //TODO: check the tree creation section of server as not being done correctly. Therefore need to fix that. The jquery is working correctly and matching the layout of the json exported by anytree. Need to fix the tree structure though - when finished will work correctly hopefully. Could be an issue with the scraping order.
             }
+            $('body').on('click', '.pointer', function() {
+                this.parentElement.querySelector(".children").classList.toggle("active");
+                this.classList.toggle("pointer-down");
+            });
         },
         error: function(error) {
-            console.log(error)
+            console.log(error);
         }
-        
     });
     
 });
+

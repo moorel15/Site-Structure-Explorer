@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<script src="../static/generateTree.js"></script>
+<script type="text/javascript" src="../static/generateTree.js"></script>
+<script type="text/javscript" src="../static/collapse.js"></script>
 <div class="container-fluid">
   <div class="row">
     <div class="col-sm-12">
@@ -28,8 +29,10 @@
         </div>
         <div id="links">
             <h2>Links to pages scraped</h2>
+                <!-- Generated Links goes here-->
         </div>
       </div>
   </div>
 </div>
+<!-- scrpt here to make sure that all elements have been rendered first-->
 {% endblock %}

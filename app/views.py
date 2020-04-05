@@ -1,14 +1,13 @@
 import json
 
 from app import app
-from flask import render_template, flash, redirect
+from flask import render_template, redirect
 from .web_forms import MapURLForm
 from urllib2 import urlopen
 from bs4 import BeautifulSoup
 import requests
 import requests.exceptions
-from urlparse import urlparse, urlsplit
-import mechanize
+from urlparse import urlsplit
 import time
 from anytree import Node, RenderTree
 from anytree.exporter import DotExporter, JsonExporter
@@ -104,12 +103,14 @@ def buildTree(startUrl, delay, disallowed):
     scraped = []
     local = []
     otherSites = []
+    titles = []
     pages = 0
     i = 0
-    scrapeLimit = 20
-    # Begin scraping on URL inputted by the user. Then loop for consequent links discovered until page count = 100.
+    scrapeLimit = 40
+    # Begin scraping on URL inputted by the user. Then loop for consequent links
+    # discovered until page count = scrapelimit.
     parent = "root"
-    collectNodes(startUrl, scrapingQueue, local, otherSites, parent)
+    collectNodes(startUrl, scrapingQueue, local, otherSites, parent, pages, titles)
     pages += 1
     while i < len(scrapingQueue):
         urlAlreadyScraped = False
@@ -124,12 +125,12 @@ def buildTree(startUrl, delay, disallowed):
         if not urlAlreadyScraped:
             if not checkUrlBanned(url, disallowed):
                 time.sleep(delay / 1000)
-                collectNodes(url, scrapingQueue, local, otherSites, parent)
+                collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles)
                 scraped.append(url)
                 pages += 1
         i += 1
-    cleanUpQueue(scrapingQueue)
     createStructure(scrapingQueue)
+    cleanUpQueue(scrapingQueue)
     end = time.time()
     global minutes
     minutes = (end - start) / 60
@@ -140,12 +141,12 @@ def buildTree(startUrl, delay, disallowed):
     return finalQueue
 
 
-def collectNodes(url, scrapingQueue, local, otherSites, parent):
+def collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles):
+    print pages
     try:
         resp = requests.get(url)
     except(requests.exceptions.MissingSchema, requests.exceptions.ConnectionError, requests.exceptions.InvalidURL,
            requests.exceptions.InvalidSchema):
-        print "Error scraping: " + str(url)
         return
     linksplit = urlsplit(url)
     root = "{0.netloc}".format(linksplit)
@@ -153,27 +154,32 @@ def collectNodes(url, scrapingQueue, local, otherSites, parent):
     siteRoot = "{0.scheme}://{0.netloc}".format(linksplit)
     path = url[:url.rfind('/') + 1] if '/' in linksplit.path else url
     soupObj = BeautifulSoup(resp.text, "html.parser")
-    parent = parent
-    print("URL: " + url + ", Pages found: " + str(len(soupObj.findAll('a'))))
+    found = 0
     for link in soupObj.findAll('a'):
         a = link.attrs["href"] if "href" in link.attrs else ""
         try:
             title = (link.string[:50] + '...') if len(link.string) > 50 else link.string
             title = ' '.join(title.split())
+            found = 0
+            for i in titles:
+                if i == title:
+                    found += 1
+            titles.append(title)
+            title = title + str(found)
         except TypeError:
             title = ""
         if a.startswith('/'):
             newLink = siteRoot + a
             if title == "":
-                title = generateTitle(newLink)
+                title = generateTitle(newLink, titles)
             local.append(tuple((title, newLink)))
         elif root in a:
             if title == "":
-                title = generateTitle(a)
+                title = generateTitle(a, titles)
             local.append(tuple((title, a)))
         elif not a.startswith('http'):
             if title == "":
-                title = generateTitle(a)
+                title = generateTitle(a, titles)
             local.append(tuple((title, a)))
         else:
             otherSites.append(a)
@@ -198,6 +204,10 @@ def cleanUpQueue(scrapingQueue):
         if i[2] == "":
             index = scrapingQueue.index(i)
             del scrapingQueue[index]
+        for j in scrapingQueue:
+            if i[2] == j[2]:
+                index =scrapingQueue.index(j)
+                del scrapingQueue[index]
 
 
 def createStructure(scrapingQueue):
@@ -218,19 +228,15 @@ def createStructure(scrapingQueue):
                 nodeattrfunc=lambda node: "fixedsize=true, height=2, width=2, shape=diamond",
                 edgeattrfunc=lambda parent, child: "style=bold"
                 ).to_picture("root.png")
+    #create JSON
     global JsonTreeStructure
     JsonTreeStructure = JsonExporter().export(root)
 
 
-def generateTitle(url):
-    try:
-        browser = mechanize.Browser()
-        browser.open(url)
-        title = browser.title()
-    except Exception:
-        title = "Title Not Found - " + str(notfoundCounter)
-        global notfoundCounter
-        notfoundCounter += 1
+def generateTitle(url, titles):
+    global notfoundCounter
+    notfoundCounter += 1
+    title = "Title Not Found - " + str(notfoundCounter)
     return title
 
 
