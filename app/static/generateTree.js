@@ -1,5 +1,3 @@
-
-
 $(document).ready(function() {
    
     //set up to be accepted by the server when sending the request.
@@ -34,29 +32,30 @@ $(document).ready(function() {
     });
     
     //send AJAX request to get the links of the pages scraped and display the links with the page name
-    $.ajax({
-        type: 'GET',
-        url: '/getLinks',
-        contentType: 'application/json; charset=utf-8',
-        success: function(response) {
-            var data = JSON.parse(response)
-            var insert = $(document).find('#links')
-            for(i=0; i < data.length; i++) {
-                if (data[i].name.indexOf("Title Not Found") >= 0) {
-                    insert.append('<a href="' + data[i].link + '"><p>' + data[i].name + '</p></a>')
-                } else {
-                    var displayName = (data[i].name).replace(/[0-9]/g, '');
-                    if(displayName == "") {
-                        displayName = "Unknown URL type"
-                    }
-                    insert.append('<a href="' + data[i].link + '"><p>' + displayName + '</p></a>')
-                }
-            }
-        },
-        error: function(error) {
-            console.log(error);
-        }
-    });
+    //TO BE EDITED AND INCORPORATED ANOTHER WAY INTO TREE.
+//    $.ajax({
+//        type: 'GET',
+//        url: '/getLinks',
+//        contentType: 'application/json; charset=utf-8',
+//        success: function(response) {
+//            var data = JSON.parse(response)
+//            var insert = $(document).find('#links')
+//            for(i=0; i < data.length; i++) {
+//                if (data[i].name.indexOf("Title Not Found") >= 0) {
+//                    insert.append('<a href="' + data[i].link + '"><p>' + data[i].name + '</p></a>')
+//                } else {
+//                    var displayName = (data[i].name).replace(/[0-9]/g, '');
+//                    if(displayName == "") {
+//                        displayName = "Unknown URL type"
+//                    }
+//                    insert.append('<a href="' + data[i].link + '"><p>' + displayName + '</p></a>')
+//                }
+//            }
+//        },
+//        error: function(error) {
+//            console.log(error);
+//        }
+//    });
     
     //send AJAX request and wait for reply from the server.
     $.ajax({
@@ -137,9 +136,10 @@ $(document).ready(function() {
                 }
                 layers++;
             }
-            $('body').on('click', '.pointer', function() {
+            $('body').on('click', '.pointer', function(e) {
                 this.parentElement.querySelector(".children").classList.toggle("active");
                 this.classList.toggle("pointer-down");
+                e.stopPropagation();
             });
         },
         error: function(error) {

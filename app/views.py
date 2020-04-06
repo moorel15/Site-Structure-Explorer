@@ -1,15 +1,15 @@
 import json
 
 from app import app
-from flask import render_template, redirect
-from .web_forms import MapURLForm
-from urllib2 import urlopen
+from flask import render_template, redirect, request, send_file
+from .web_forms import MapURLForm, getImageForm
+from urllib2 import urlopen, HTTPError, URLError
 from bs4 import BeautifulSoup
 import requests
 import requests.exceptions
 from urlparse import urlsplit
 import time
-from anytree import Node, RenderTree
+from anytree import Node
 from anytree.exporter import DotExporter, JsonExporter
 
 notfoundCounter = 0
@@ -18,6 +18,8 @@ JsonTreeStructure = {}
 minutes = 0
 pagesPerMinute = 0
 delay = 0
+current = ""
+treeStructure = {}
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -29,7 +31,15 @@ def index():
         delay = info[0]
         disallowed = info[1]
         allowed = info[2]
-        buildTree(("https://" + URL), delay, disallowed)
+        scrapeLimit = 0
+        choice = request.form['options']
+        if choice == "shallow":
+            scrapeLimit = 20
+        elif choice == "medium":
+            scrapeLimit = 50
+        elif choice == "deep":
+            scrapeLimit = 100
+        buildTree(("https://" + URL), delay, disallowed, scrapeLimit)
         return redirect('/result')
     return render_template('generate.html', form=form)
 
@@ -39,6 +49,12 @@ def getJSON():
     return JsonTreeStructure
 
 
+@app.route('/getPage', methods=['GET', 'POST'])
+def getPage():
+    data = {"currentPage": current}
+    return json.dumps(data)
+
+
 @app.route('/getLinks', methods=['GET', 'POST'])
 def getLinks():
     return json.dumps(finalQueue)
@@ -46,13 +62,29 @@ def getLinks():
 
 @app.route('/getStats', methods=['GET', 'POST'])
 def getStats():
-    data = {"minutes": str(minutes), "pagesPerMinute": str(pagesPerMinute), "titleNotFound": str(notfoundCounter), "pagesFound": str(len(finalQueue)), "delay": str(delay/1000)}
+    data = {"minutes": str(minutes), "pagesPerMinute": str(pagesPerMinute), "titleNotFound": str(notfoundCounter),
+            "pagesFound": str(len(finalQueue)), "delay": str(delay / 1000)}
     return json.dumps(data)
 
 
 @app.route('/result', methods=['GET', 'POST'])
 def result():
-    return render_template('result.html')
+    form = getImageForm()
+    if form.validate_on_submit():
+        #get the first occurance of the page to ensure fullest possible image
+        try:
+            if "Title Not Found" in form.node.data:
+                input = form.node.data.strip()
+            else:
+                input = form.node.data.strip() + "0"
+            generateImage(input, treeStructure)
+        except KeyError as e:
+            print e
+        try:
+            return send_file('root.png',as_attachment=True, attachment_filename=(input + '.png'))
+        except Exception as e:
+            return str(e)
+    return render_template('result.html', form=form)
 
 
 def getRobotTxt(URL):
@@ -97,7 +129,9 @@ def buildJSONQueue(scrapingQueue):
     return jsonQueue
 
 
-def buildTree(startUrl, delay, disallowed):
+def buildTree(startUrl, delay, disallowed, scrapeLimit):
+    global notfoundCounter
+    notfoundCounter = 0
     start = time.time()
     scrapingQueue = []
     scraped = []
@@ -106,12 +140,11 @@ def buildTree(startUrl, delay, disallowed):
     titles = []
     pages = 0
     i = 0
-    scrapeLimit = 40
     # Begin scraping on URL inputted by the user. Then loop for consequent links
     # discovered until page count = scrapelimit.
     parent = "root"
-    collectNodes(startUrl, scrapingQueue, local, otherSites, parent, pages, titles)
     pages += 1
+    collectNodes(startUrl, scrapingQueue, local, otherSites, parent, pages, titles, scrapeLimit)
     while i < len(scrapingQueue):
         urlAlreadyScraped = False
         if pages == scrapeLimit:
@@ -125,11 +158,12 @@ def buildTree(startUrl, delay, disallowed):
         if not urlAlreadyScraped:
             if not checkUrlBanned(url, disallowed):
                 time.sleep(delay / 1000)
-                collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles)
+                collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles, scrapeLimit)
                 scraped.append(url)
                 pages += 1
         i += 1
-    createStructure(scrapingQueue)
+    global treeStructure
+    treeStructure = createStructure(scrapingQueue)
     cleanUpQueue(scrapingQueue)
     end = time.time()
     global minutes
@@ -141,8 +175,9 @@ def buildTree(startUrl, delay, disallowed):
     return finalQueue
 
 
-def collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles):
-    print pages
+def collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles, scrapeLimit):
+    global current
+    current = "Currently scraping: " + url + " (" + str(pages) + "/" + str(scrapeLimit) + ")"
     try:
         resp = requests.get(url)
     except(requests.exceptions.MissingSchema, requests.exceptions.ConnectionError, requests.exceptions.InvalidURL,
@@ -204,10 +239,6 @@ def cleanUpQueue(scrapingQueue):
         if i[2] == "":
             index = scrapingQueue.index(i)
             del scrapingQueue[index]
-        for j in scrapingQueue:
-            if i[2] == j[2]:
-                index =scrapingQueue.index(j)
-                del scrapingQueue[index]
 
 
 def createStructure(scrapingQueue):
@@ -218,19 +249,14 @@ def createStructure(scrapingQueue):
         parent = page[0].encode('ascii', 'ignore').decode('ascii')
         title = page[1].encode('ascii', 'ignore').decode('ascii')
         nodes[title] = Node(title, parent=nodes[parent])
-    # print the final structure
-    print("\n\n\nPrinting tree...")
-    for pre, fill, node in RenderTree(root):
-        name = node.name
-        print("%s%s" % (pre, name))
-    # create image
-    DotExporter(root,
-                nodeattrfunc=lambda node: "fixedsize=true, height=2, width=2, shape=diamond",
-                edgeattrfunc=lambda parent, child: "style=bold"
-                ).to_picture("root.png")
-    #create JSON
     global JsonTreeStructure
     JsonTreeStructure = JsonExporter().export(root)
+    return nodes
+
+
+def generateImage(request, nodes):
+    node = nodes[request]
+    DotExporter(node, maxlevel=2).to_picture(str("root.png"))
 
 
 def generateTitle(url, titles):
