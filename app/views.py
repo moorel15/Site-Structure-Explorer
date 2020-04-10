@@ -1,9 +1,8 @@
 import json
-
 from app import app
 from flask import render_template, redirect, request, send_file
 from .web_forms import MapURLForm, getImageForm
-from urllib2 import urlopen, HTTPError, URLError
+from urllib2 import urlopen
 from bs4 import BeautifulSoup
 import requests
 import requests.exceptions
@@ -22,6 +21,7 @@ current = ""
 treeStructure = {}
 
 
+# app route for the generate pages - calls all functions needed to scrape site.
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = MapURLForm()
@@ -39,27 +39,26 @@ def index():
             scrapeLimit = 50
         elif choice == "deep":
             scrapeLimit = 100
+        elif choice == "full":
+            scrapeLimit = 0
         buildTree(("https://" + URL), delay, disallowed, scrapeLimit)
         return redirect('/result')
     return render_template('generate.html', form=form)
 
 
+# return the JSON queue
 @app.route('/getJSON', methods=['GET', 'POST'])
 def getJSON():
     return JsonTreeStructure
 
 
-@app.route('/getPage', methods=['GET', 'POST'])
-def getPage():
-    data = {"currentPage": current}
-    return json.dumps(data)
-
-
+# return the finalQueue on AJAX request.
 @app.route('/getLinks', methods=['GET', 'POST'])
 def getLinks():
     return json.dumps(finalQueue)
 
 
+# return the stats on request from AJAX.
 @app.route('/getStats', methods=['GET', 'POST'])
 def getStats():
     data = {"minutes": str(minutes), "pagesPerMinute": str(pagesPerMinute), "titleNotFound": str(notfoundCounter),
@@ -67,12 +66,14 @@ def getStats():
     return json.dumps(data)
 
 
+# app route for the results page
 @app.route('/result', methods=['GET', 'POST'])
 def result():
     form = getImageForm()
     if form.validate_on_submit():
-        #get the first occurance of the page to ensure fullest possible image
+        # get the first occurance of the page to ensure fullest possible image
         try:
+            # convert title to node name and generate the image.
             if "Title Not Found" in form.node.data:
                 input = form.node.data.strip()
             else:
@@ -81,6 +82,7 @@ def result():
         except KeyError as e:
             print e
         try:
+            # return image
             return send_file('root.png',as_attachment=True, attachment_filename=(input + '.png'))
         except Exception as e:
             return str(e)
@@ -88,6 +90,7 @@ def result():
 
 
 def getRobotTxt(URL):
+    # access the robots.text file and get the data requred to scrape
     lines = []
     disallowed = []
     allowed = []
@@ -96,6 +99,7 @@ def getRobotTxt(URL):
     delay = 0
     robots = 'https://' + URL[4:length] + '/robots.txt'
     try:
+        # parse file to find data.
         contents = urlopen(robots)
         for i in contents:
             lines.append(i)
@@ -112,6 +116,7 @@ def getRobotTxt(URL):
                             allowed.append(j[7:len(j)])
                         elif "Crawl-delay: " in j:
                             delay = j[13:len(j)]
+    # if cant find file in url then set values to be default
     except Exception:
         print("Error encountered: Unable to establish link to robot.txt file resorting to default values")
     if delay == 0:
@@ -121,6 +126,7 @@ def getRobotTxt(URL):
     return returnTuple
 
 
+# build a JSON transferable queue from scraping queue.
 def buildJSONQueue(scrapingQueue):
     jsonQueue = []
     for i in scrapingQueue:
@@ -129,7 +135,9 @@ def buildJSONQueue(scrapingQueue):
     return jsonQueue
 
 
+# function called to build the tree.
 def buildTree(startUrl, delay, disallowed, scrapeLimit):
+    # set default values.
     global notfoundCounter
     notfoundCounter = 0
     start = time.time()
@@ -140,15 +148,21 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
     titles = []
     pages = 0
     i = 0
+    fullSite = False
     # Begin scraping on URL inputted by the user. Then loop for consequent links
-    # discovered until page count = scrapelimit.
+    # discovered until page count = scrapelimit or full site.
     parent = "root"
     pages += 1
-    collectNodes(startUrl, scrapingQueue, local, otherSites, parent, pages, titles, scrapeLimit)
+    if scrapeLimit == 0:
+        fullSite = True
+    # iterate over the queue and collect the nodes from the pages if the page is allowed and if it
+    # hasnt already been scraped to maintain tree - structure.
+    collectNodes(startUrl, scrapingQueue, local, otherSites, parent, titles)
     while i < len(scrapingQueue):
         urlAlreadyScraped = False
-        if pages == scrapeLimit:
-            break
+        if not fullSite:
+            if pages == scrapeLimit:
+                break
         url = scrapingQueue[i][2]
         parent = scrapingQueue[i][1]
         for page in scraped:
@@ -158,10 +172,12 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
         if not urlAlreadyScraped:
             if not checkUrlBanned(url, disallowed):
                 time.sleep(delay / 1000)
-                collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles, scrapeLimit)
+                collectNodes(url, scrapingQueue, local, otherSites, parent, titles)
                 scraped.append(url)
                 pages += 1
         i += 1
+    # once queue or list is created - build structure in any tree - clean up links queue.
+    # get time taken and build output queues.
     global treeStructure
     treeStructure = createStructure(scrapingQueue)
     cleanUpQueue(scrapingQueue)
@@ -175,21 +191,27 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
     return finalQueue
 
 
-def collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles, scrapeLimit):
-    global current
-    current = "Currently scraping: " + url + " (" + str(pages) + "/" + str(scrapeLimit) + ")"
+# function to collect nodes from page.
+def collectNodes(url, scrapingQueue, local, otherSites, parent, titles):
+    # get response from page
+    # create soup object to get data from
     try:
         resp = requests.get(url)
     except(requests.exceptions.MissingSchema, requests.exceptions.ConnectionError, requests.exceptions.InvalidURL,
            requests.exceptions.InvalidSchema):
         return
+    # generate url to build links used later
     linksplit = urlsplit(url)
     root = "{0.netloc}".format(linksplit)
     root = root.replace("www.", "")
     siteRoot = "{0.scheme}://{0.netloc}".format(linksplit)
-    path = url[:url.rfind('/') + 1] if '/' in linksplit.path else url
-    soupObj = BeautifulSoup(resp.text, "html.parser")
-    found = 0
+    try:
+        soupObj = BeautifulSoup(resp.text, "html.parser")
+    except Exception as e:
+        print e
+        return
+    # loop through links on the pages, get title, create link of pages with parents and links. add the local pages to
+    # entire queue.
     for link in soupObj.findAll('a'):
         a = link.attrs["href"] if "href" in link.attrs else ""
         try:
@@ -206,15 +228,15 @@ def collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles, s
         if a.startswith('/'):
             newLink = siteRoot + a
             if title == "":
-                title = generateTitle(newLink, titles)
+                title = generateTitle()
             local.append(tuple((title, newLink)))
         elif root in a:
             if title == "":
-                title = generateTitle(a, titles)
+                title = generateTitle()
             local.append(tuple((title, a)))
         elif not a.startswith('http'):
             if title == "":
-                title = generateTitle(a, titles)
+                title = generateTitle()
             local.append(tuple((title, a)))
         else:
             otherSites.append(a)
@@ -223,6 +245,7 @@ def collectNodes(url, scrapingQueue, local, otherSites, parent, pages, titles, s
     del local[:]
 
 
+# check if url appears in the disallowed pages.
 def checkUrlBanned(url, disallowed):
     for i in disallowed:
         if "*" in i:
@@ -234,6 +257,7 @@ def checkUrlBanned(url, disallowed):
     return False
 
 
+# clean up queue, if no link is present then remove from the queue.
 def cleanUpQueue(scrapingQueue):
     for i in scrapingQueue:
         if i[2] == "":
@@ -241,6 +265,7 @@ def cleanUpQueue(scrapingQueue):
             del scrapingQueue[index]
 
 
+# create the tree structure based on the scraping queue
 def createStructure(scrapingQueue):
     nodes = {}
     root = Node('root')
@@ -254,18 +279,21 @@ def createStructure(scrapingQueue):
     return nodes
 
 
+# generate an image from the nodez created.
 def generateImage(request, nodes):
     node = nodes[request]
     DotExporter(node, maxlevel=2).to_picture(str("root.png"))
 
 
-def generateTitle(url, titles):
+# generate title of pages which could not be created
+def generateTitle():
     global notfoundCounter
     notfoundCounter += 1
     title = "Title Not Found - " + str(notfoundCounter)
     return title
 
 
+# begin a loop from a start point - own loop start function
 def startLoop(list, index):
     for i in range(index, len(list)):
         yield list[i]
@@ -273,5 +301,6 @@ def startLoop(list, index):
         yield list[i]
 
 
+# check if a line is empty
 def isLineEmpty(line):
     return len(line.strip()) < 1

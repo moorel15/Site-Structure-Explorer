@@ -1,41 +1,40 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- javascript/jqeury for checking input-->
 <script type="text/javascript" src="../static/display.js"></script>
 <div class="container-fluid">
     <div class="row">
         <div class="col-sm-12 col-md-2"></div>
         <div class="col-sm-12 col-md-8" id="Center">
-          <div id="generateMap">
-            <h1>Generate a Sitemap</h1>
-            <p>To create a sitemap for your website, type or paste into the search field your URL, hit the 'Generate Sitemap' button. Then sit back and let Moore's Maps do the work to generate the sitemap for you.</p>
-            <form id="URLForm" action="" method="post" name="MapURLForm">
-                {{ form.hidden_tag() }}
-                <p>
-                  {{ form.URL}}
-                </p>
-                <p>
-                    <input type="submit" value="Generate Sitemap" id="searchButton">
-                </p>
-                <p>
-                    Select scrape level: 
-                    <input type="radio" name="options" id="shallow" value="shallow" checked>Shallow scrape </input>
-                    <input type="radio" name="options" id="medium" value="medium">Medium scrape </input>
-                    <input type="radio" name="options" id="deep" value="deep">Deep scrape </input>
-                </p>
-                <div id="information">
-                </div>
-            </form>
-          </div>
-          <div id="features">
-            <h2>Features</h2>
-            <p>Update with all the possible features once completed, eg printing site map etc.</p>
-          </div>
-          <div id="about">
-            <h2>About</h2>
-            <p>include all the information about the production including the use of code taken from bootstrap - like a bibliography for the source code - provide link to the github once finished</p>
-          </div>
+            <div id="generateMap">
+                <h1>Generate a Sitemap</h1>
+                <p>To create a sitemap for your website, type or paste into the search field your URL, hit the 'Generate Sitemap' button. Then sit back and let Moore's Maps do the work to generate the sitemap for you.</p>
+                <form id="URLForm" action="" method="post" name="MapURLForm">
+                    {{ form.hidden_tag() }}
+                    <p>{{ form.URL}}</p>
+                    <p><input type="submit" value="Generate Sitemap" id="searchButton"></p>
+                    <p>
+                        Select scrape level: 
+                        <input type="radio" name="options" id="shallow" value="shallow" checked>Shallow scrape </input>
+                        <input type="radio" name="options" id="medium" value="medium">Medium scrape </input>
+                        <input type="radio" name="options" id="deep" value="deep">Deep scrape </input>
+                        <input type="radio" name="options" id="full" value="full">Entire website (note: this will take considerable time.)</input>
+                    </p>
+                    <div id="information">
+                    </div>
+                </form>
+            </div>
+            <div id="features">
+                <h2>Features</h2>
+                <p>Update with all the possible features once completed, eg printing site map etc.</p>
+            </div>
+            <div id="about">
+                <h2>About</h2>
+                <p>include all the information about the production including the use of code taken from bootstrap - like a bibliography for the source code - provide link to the github once finished</p>
+            </div>
         </div>
-        <div class="col-sm-12 col-md-2"></div>
+        <div class="col-sm-12 col-md-2">
+        </div>
     </div>
 </div>
 {% endblock %}

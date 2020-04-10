@@ -1,47 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- include javascript/jquery file to generate the final output tree -->
 <script type="text/javascript" src="../static/generateTree.js"></script>
+<!-- build the page with the included elements created in Javascript-->
 <div class="container-fluid">
-  <div class="row">
-    <div class="col-sm-12">
-      <div id="title">
-        <h1>The results of your search</h1>
-      </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <div id="title">
+                <h1>The results of your search</h1>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="row">
-      <div class="col-sm-12 col-md-8">
-        <div id="hierarchy">
-          <h2>Hierarchy</h2>
-            <div id="tree">
-                <!--Generated tree goes inside here-->
+    <div class="row">
+        <div class="col-sm-12 col-md-2"></div>
+        <div class="col-sm-12 col-md-8">
+            <div id="details">
+                <h2>Statistics for your map</h2>
+                <div id="stats">
+                    <!-- Generated Statistics goes here-->
+                </div>
             </div>
         </div>
-        <p>Below you can input the name of a page you wish to see graphically, type the name just as it appears on the above file-like structure and hit download. The file will be downloaded straight to your browser. If the page you entered doesn't exist try again.<br>Note: the number next to the name on each of the pages on the graphical representation is the occurance in which the page was discovered by the scraper.</p>
-        <form id="imageForm" action="" method="post" name="getImageForm">
-            {{ form.hidden_tag() }}
-            <p>
-              {{ form.node}}
-            </p>
-            <p>
-                <input type="submit" value="Download" id="generateButton">
-            </p>
-        </form>
-      </div>
-      <div class="col-sm-12 col-md-4">
-        <div id="details">
-          <h2>Statistics for your map</h2>
-            <div id="stats">
-                <!-- Generated Statistics goes here-->
+        <div class="col-sm-12 col-md-2"></div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 col-md-2"></div>
+        <div class="col-sm-12 col-md-8">
+            <div id="hierarchy">
+                <h2>Hierarchy</h2>
+                <div id="tree">
+                    <!--Generated tree goes inside here-->
+                </div>
+            </div>
+            <form id="imageForm" action="" method="post" name="getImageForm">
+                {{ form.hidden_tag() }}
+                <h2>Download an graphical representaion of a page</h2>
+                <p id="searchInformation">Below you can input the name of a page you wish to see graphically, type the name just as it appears on the above file-like structure and hit download. The file will be downloaded straight to your browser. If the page you entered doesn't exist try again.<br><br>Note: the number next to the name on each of the pages on the graphical representation is the occurance in which the page was discovered by the scraper.</p>
+                <p>{{ form.node}}</p>
+                <p><input type="submit" value="Download" id="generateButton"></p>
+            </form>
+            <div id="information">
             </div>
         </div>
-        <div id="links">
-            <h2>Links to pages scraped</h2>
-                <!-- Generated Links goes here-->
-        </div>
-      </div>
-  </div>
+        <div class="col-sm-12 col-md-2"></div>
+    </div>
 </div>
-<!-- scrpt here to make sure that all elements have been rendered first-->
 {% endblock %}
