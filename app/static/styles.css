@@ -43,6 +43,9 @@
   border-color: #343a40;
   color: #343a40;
 }
+#iterations {
+    width: 6ch;
+}
 /* End of homepage styling */
 
 /* Start of results page styling */

@@ -85,7 +85,7 @@ def result():
             print e
         try:
             # return image
-            return send_file('root.png',as_attachment=True, attachment_filename=(input + '.png'))
+            return send_file('root.png', as_attachment=True, attachment_filename=(input + '.png'))
         except Exception as e:
             return str(e)
     return render_template('result.html', form=form)
@@ -118,9 +118,10 @@ def getRobotTxt(URL):
                             allowed.append(j[7:len(j)])
                         elif "Crawl-delay: " in j:
                             delay = j[13:len(j)]
+            break
     # if cant find file in url then set values to be default
-    except Exception:
-        print("Error encountered: Unable to establish link to robot.txt file resorting to default values")
+    except Exception as e:
+        print e
     if delay == 0:
         global delay
         delay = 2000
@@ -150,13 +151,11 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
     titles = []
     pages = 0
     i = 0
-    fullSite = False
     # Begin scraping on URL inputted by the user. Then loop for consequent links
     # discovered until page count = scrapelimit or full site.
     parent = "root"
     pages += 1
-    if scrapeLimit == 0:
-        fullSite = True
+    print scrapeLimit
     # iterate over the queue and collect the nodes from the pages if the page is allowed and if it
     # hasnt already been scraped to maintain tree - structure.
     collectNodes(startUrl, scrapingQueue, local, otherSites, parent, titles)
@@ -177,6 +176,7 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
                 scraped.append(url)
                 pages += 1
         i += 1
+        print pages
     # once queue or list is created - build structure in any tree - clean up links queue.
     # get time taken and build output queues.
     global treeStructure
@@ -283,7 +283,7 @@ def createStructure(scrapingQueue):
 # generate an image from the nodes created.
 def generateImage(request, nodes):
     node = nodes[request]
-    DotExporter(node, maxlevel=2).to_picture(str("root.png"))
+    DotExporter(node, maxlevel=2).to_picture("root.png")
 
 
 # generate title of pages which could not be created

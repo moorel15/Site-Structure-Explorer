@@ -12,6 +12,7 @@ function checkSearch(input, linksRecieved) {
 
 //when document is ready perform the following to construct content.
 $(document).ready(function() {
+    linksRecieved = []
     //set up to be accepted by the server when sending the request.
     var csrf_token = $('meta[name=csrf-token]').attr('content');
     var pages = 0
@@ -58,7 +59,6 @@ $(document).ready(function() {
             for(var i=0; i < data.length; i++) {
                 linksRecieved.push({title: data[i].name, link: data[i].link})
             }
-            console.log(linksRecieved);
         },
         error: function(error) {
             console.log(error);
@@ -88,7 +88,6 @@ $(document).ready(function() {
                         break;
                     }
                 }
-                console.log(href)
                 var insert = $(document).find("#structure");
                 if(children[i].hasOwnProperty("children")) {
                     idCounter++;
@@ -131,7 +130,6 @@ $(document).ready(function() {
                             break;
                         }
                     }
-                    console.log(href)
                     if(children[i].hasOwnProperty("children")) {
                         idCounter++;
                         var parentID = "layer" + idCounter;
@@ -181,8 +179,8 @@ $(document).ready(function() {
         if(!(input.includes("Title Not Found"))) {
             input = (input + "0");
         }
+        console.log(input)
         if(checkSearch(input, linksRecieved)) {
-            alert("Check your downloads for your graphical representation");
             $('form').submit();
         }else {
             alert("The name you have entered does not match. Try again.");
