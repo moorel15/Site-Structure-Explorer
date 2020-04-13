@@ -11,6 +11,8 @@ import time
 from anytree import Node
 from anytree.exporter import DotExporter, JsonExporter
 
+
+#declare global variables used by all functions and passed back to the user.
 notfoundCounter = 0
 finalQueue = []
 JsonTreeStructure = {}

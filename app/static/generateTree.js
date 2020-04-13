@@ -8,22 +8,23 @@ function checkSearch(input, linksRecieved) {
     }
     return false;
 }
+
 //when document is ready perform the following to construct content.
 $(document).ready(function() {
     //set up to be accepted by the server when sending the request.
     var csrf_token = $('meta[name=csrf-token]').attr('content');
     var pages = 0
     var childrenQueue = []
-    
+
     //set up the ajax in order for it to be accepted by the server.
     $.ajaxSetup({
-	    beforeSend: function(xhr, settings) {
-	        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-	            xhr.setRequestHeader("X-CSRFToken", csrf_token);
-	        }
-	    }
-	});
-    
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrf_token);
+            }
+        }
+    });
+
     //send AJAX request for stats and wait then display dynamically
     //display the statistics when recieved from the server
     $.ajax({
@@ -44,7 +45,7 @@ $(document).ready(function() {
             console.log(error);
         }
     });
-    
+
     //get the links from the server using ajax get request and then wait for server.
     //when recieved store all links in an array of objects to be used later on. when adding links to the tree. 
     $.ajax({
@@ -61,7 +62,7 @@ $(document).ready(function() {
             console.log(error);
         }
     });
-    
+
     //send AJAX request and wait for reply from the server.
     //once recieved the JSON format, parse the json and work with it.
     $.ajax({
@@ -85,7 +86,6 @@ $(document).ready(function() {
                         break;
                     }
                 }
-                console.log(href);
                 var insert = $(document).find("#structure");
                 if(children[i].hasOwnProperty("children")) {
                     idCounter++;
@@ -94,7 +94,7 @@ $(document).ready(function() {
                     childrenQueue.push({parentID: parentID, children:children[i].children});
                     if(children[i].name.indexOf("Title Not Found") >= 0) {
                         insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
-                    } else {
+                    }else {
                         var displayName = (children[i].name).replace(/[0-9]/g, '')
                         if(displayName == "") {
                             displayName = "Title not obtained by scraper";
@@ -106,16 +106,16 @@ $(document).ready(function() {
                 }else {
                     if(children[i].name.indexOf("Title Not Found") >= 0) {
                         insert.append("<li>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></li>");  
-                    } else {
+                    }else {
                         var displayName = (children[i].name).replace(/[0-9]/g, '')
                         if(displayName == "") {
-                                displayName = "Title not obtained by scraper";
-                            }
+                            displayName = "Title not obtained by scraper";
+                        }
                         insert.append("<li>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></li>"); 
                     }
-                    
                 }
             }
+
             //repeat the above stages for all chidren in the queue. 
             while(layers < childrenQueue.length) {
                 layer = childrenQueue[layers];
@@ -135,7 +135,7 @@ $(document).ready(function() {
                         childrenQueue.push({parentID: parentID, children:children[i].children});
                         if(children[i].name.indexOf("Title Not Found") >= 0) {
                             location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
-                        } else {
+                        }else {
                             var displayName = (children[i].name).replace(/[0-9]/g, '')
                             if(displayName == "") {
                                 displayName = "Title not obtained by scraper";
@@ -147,7 +147,7 @@ $(document).ready(function() {
                     }else {
                         if(children[i].name.indexOf("Title Not Found") >= 0) {
                             location.append("<li>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></li>");
-                        } else {
+                        }else {
                             var displayName = (children[i].name).replace(/[0-9]/g, '');
                             if(displayName == "") {
                                 displayName = "Title not obtained by scraper";
@@ -169,14 +169,14 @@ $(document).ready(function() {
             console.log(error);
         }
     });
-    
+
     //if downnload button clicked then chek the input is valid if so submit the form, otherwise show them a message to say input invalid
     $("#generateButton").on("click", function(evt) {
         evt.preventDefault();
         var input = $("#node").val();
         if(!(input.includes("Title Not Found"))) {
             input = (input + "0").replace(/\s/g, '');
-        }
+        }   
         var location = $(document).find("#information")
         if(checkSearch(input, linksRecieved)) {
             location.append("<div class='alert alert-success' role='alert'>Check your downloads for your graphical representation</div>").hide().fadeIn(1000).fadeOut(1000);
