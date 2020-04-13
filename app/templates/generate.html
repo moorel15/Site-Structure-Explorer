@@ -8,17 +8,17 @@
         <div class="col-sm-12 col-md-8" id="Center">
             <div id="generateMap">
                 <h1>Generate a Sitemap</h1>
-                <p>To create a sitemap for your website, type or paste into the search field your URL, hit the 'Generate Sitemap' button. Then sit back and let Moore's Maps do the work to generate the sitemap for you.</p>
+                <p>To create a sitemap for your website, type or paste into the search field your URL, hit the 'Generate Sitemap' button. Then sit back and let Moore's Maps do the work to generate the sitemap for you.<br><br>Note: Make sure that you do not include the Https:// or Http:// protocol in your URL field.</p>
                 <form id="URLForm" action="" method="post" name="MapURLForm">
                     {{ form.hidden_tag() }}
                     <p>{{ form.URL}}</p>
                     <p><input type="submit" value="Generate Sitemap" id="searchButton"></p>
                     <p>
                         Select scrape level: 
-                        <input type="radio" name="options" id="shallow" value="shallow" checked>Shallow scrape </input>
-                        <input type="radio" name="options" id="medium" value="medium">Medium scrape </input>
-                        <input type="radio" name="options" id="deep" value="deep">Deep scrape </input>
-                        <input type="radio" name="options" id="full" value="full">Entire website (note: this will take considerable time.)</input>
+                        <input type="radio" name="options" id="shallow" value="shallow" checked>Shallow (50 iterations)</input>
+                        <input type="radio" name="options" id="medium" value="medium">Medium (150 iterations)</input>
+                        <input type="radio" name="options" id="deep" value="deep">Deep (300 iterations)</input>
+        <input type="radio" name="options" id="custom" value="custom">Custom<input type="text" name="iterations" id="iterations"></input> iterations</input>
                     </p>
                     <div id="information">
                     </div>
@@ -26,11 +26,19 @@
             </div>
             <div id="features">
                 <h2>Features</h2>
-                <p>Update with all the possible features once completed, eg printing site map etc.</p>
+                <h4>Scraping websites</h4>
+                <p>Moore's maps allows you to scrape websites to gain a deeper understanding of them and to see different paths you can take through a website.</p>
+                <h4>Viewing your results</h4>
+                <p>When the scraping process is complete, you will see a graphical user interface, which you can expand and collapse in order to view different pages and it's child pages.</p>
+                <h4>Downloading sections of your results</h4>
+                <p>You can also download your results, simply input a name of a page you wish to see and hit download, you will recieve a PDF file of that pages immediate child pages, this can then be printed using the PDF viewer installed on your PC.</p>
             </div>
             <div id="about">
                 <h2>About</h2>
-                <p>include all the information about the production including the use of code taken from bootstrap - like a bibliography for the source code - provide link to the github once finished</p>
+                <h4>Source Code</h4>
+                <p>The source code for this project is available at:<br><a href="https://github.com/moorel15/Site-Structure-Explorer">GitHub - Luke Moore</a></p>
+                <h4>Coding References</h4>
+                <p>When creating this project code was used and adapted from:<br><a href="https://getbootstrap.com/docs/4.0/components/alerts/">Bootstrap 4 - Alerts</a><br><a href="https://getbootstrap.com/docs/4.0/components/navbar/">Bootstrap 4 - NavBar</a></p>
             </div>
         </div>
         <div class="col-sm-12 col-md-2">

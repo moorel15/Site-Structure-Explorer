@@ -24,13 +24,24 @@ function validateInput(input) {
 $(document).ready(function() {
     $("#searchButton").on("click", function(evt) {
         evt.preventDefault();
+        var inputOK = true;
         var input = $("#URL").val()
         if(validateInput(input)) {
             $("#information").empty();
-            $(document).find("#information").append("<div class='alert alert-success' role='alert'>Moore's maps is building your site map, please wait...</div>").hide().fadeIn(1000);
-            $('form').submit();
+            if($('#custom'). is(':checked')) {
+                var iterations = $('#iterations').val();
+                if(!(/^\d+$/.test(iterations))) {
+                    $(document).find("#information").append("<div class='alert alert-danger' role='alert'>The number of iterations your entered is invalid, please try again.</div>").hide().fadeIn(1000);
+                    inputOK = false;
+                }
+            }
+            if(inputOK) {
+                $(document).find("#information").append("<div class='alert alert-success' role='alert'>Moore's maps is building your site map, please wait...</div>").hide().fadeIn(1000);
+                $('form').submit();
+            }
         }else {
             console.log("URL inputted incorrectly.")
         }
+        
     });
 });

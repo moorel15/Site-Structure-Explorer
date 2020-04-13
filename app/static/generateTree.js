@@ -1,4 +1,5 @@
 var linksRecieved = []
+
 //check if the input is in the pages returned
 function checkSearch(input, linksRecieved) {
     for(var i=0; i < linksRecieved.length; i++) {
@@ -54,9 +55,10 @@ $(document).ready(function() {
         contentType: 'application/json; charset=utf-8',
         success: function(response) {
             var data = JSON.parse(response)
-            for(i=0; i < data.length; i++) {
+            for(var i=0; i < data.length; i++) {
                 linksRecieved.push({title: data[i].name, link: data[i].link})
             }
+            console.log(linksRecieved);
         },
         error: function(error) {
             console.log(error);
@@ -79,13 +81,14 @@ $(document).ready(function() {
             var idCounter = 0;
             var href = "";
             //for each in children. check if it has children if it does then add them to a queue, and add element, otherwise add an element directly.
-            for(i=0;i<children.length;i++) {
+            for(var i=0;i<children.length;i++) {
                 for(var j=0; j < linksRecieved.length; j++) {
                     if(children[i].name == linksRecieved[j].title) {
                         href = linksRecieved[j].link;
                         break;
                     }
                 }
+                console.log(href)
                 var insert = $(document).find("#structure");
                 if(children[i].hasOwnProperty("children")) {
                     idCounter++;
@@ -121,13 +124,14 @@ $(document).ready(function() {
                 layer = childrenQueue[layers];
                 children = layer.children;
                 var location = $(document).find("#" + layer.parentID);
-                for(i=0;i<children.length;i++) {
+                for(var i=0;i<children.length;i++) {
                     for(var j=0; j < linksRecieved.length; j++) {
                         if(children[i].name == linksRecieved[j].title) {
                             href = linksRecieved[j].link;
                             break;
                         }
                     }
+                    console.log(href)
                     if(children[i].hasOwnProperty("children")) {
                         idCounter++;
                         var parentID = "layer" + idCounter;
@@ -175,14 +179,13 @@ $(document).ready(function() {
         evt.preventDefault();
         var input = $("#node").val();
         if(!(input.includes("Title Not Found"))) {
-            input = (input + "0").replace(/\s/g, '');
-        }   
-        var location = $(document).find("#information")
+            input = (input + "0");
+        }
         if(checkSearch(input, linksRecieved)) {
-            location.append("<div class='alert alert-success' role='alert'>Check your downloads for your graphical representation</div>").hide().fadeIn(1000).fadeOut(1000);
+            alert("Check your downloads for your graphical representation");
             $('form').submit();
         }else {
-            location.append("<div class='alert alert-danger' role='alert'>The name you have inputted does not match. Try again</div>").hide().fadeIn(1000).fadeOut(1000);
+            alert("The name you have entered does not match. Try again.");
         }
     });
 });

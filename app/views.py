@@ -12,7 +12,7 @@ from anytree import Node
 from anytree.exporter import DotExporter, JsonExporter
 
 
-#declare global variables used by all functions and passed back to the user.
+# declare global variables used by all functions and passed back to the user.
 notfoundCounter = 0
 finalQueue = []
 JsonTreeStructure = {}
@@ -36,13 +36,13 @@ def index():
         scrapeLimit = 0
         choice = request.form['options']
         if choice == "shallow":
-            scrapeLimit = 20
-        elif choice == "medium":
             scrapeLimit = 50
+        elif choice == "medium":
+            scrapeLimit = 150
         elif choice == "deep":
-            scrapeLimit = 100
-        elif choice == "full":
-            scrapeLimit = 0
+            scrapeLimit = 300
+        elif choice == "custom":
+            scrapeLimit = int(request.form['iterations'])
         buildTree(("https://" + URL), delay, disallowed, scrapeLimit)
         return redirect('/result')
     return render_template('generate.html', form=form)
@@ -63,7 +63,7 @@ def getLinks():
 # return the stats on request from AJAX.
 @app.route('/getStats', methods=['GET', 'POST'])
 def getStats():
-    data = {"minutes": str(minutes), "pagesPerMinute": str(pagesPerMinute), "titleNotFound": str(notfoundCounter),
+    data = {"minutes": str(round(minutes, 2)), "pagesPerMinute": str(round(pagesPerMinute)), "titleNotFound": str(notfoundCounter),
             "pagesFound": str(len(finalQueue)), "delay": str(delay / 1000)}
     return json.dumps(data)
 
@@ -162,9 +162,8 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
     collectNodes(startUrl, scrapingQueue, local, otherSites, parent, titles)
     while i < len(scrapingQueue):
         urlAlreadyScraped = False
-        if not fullSite:
-            if pages == scrapeLimit:
-                break
+        if pages == scrapeLimit:
+            break
         url = scrapingQueue[i][2]
         parent = scrapingQueue[i][1]
         for page in scraped:
@@ -281,7 +280,7 @@ def createStructure(scrapingQueue):
     return nodes
 
 
-# generate an image from the nodez created.
+# generate an image from the nodes created.
 def generateImage(request, nodes):
     node = nodes[request]
     DotExporter(node, maxlevel=2).to_picture(str("root.png"))
