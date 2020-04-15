@@ -5,20 +5,9 @@ function validateInput(input) {
     if(!(regex.test(input))) {
         $("#information").empty();
         $(document).find("#information").append("<div id='alert' class='alert alert-danger' role='alert'>The URL provided doesn't follow the correct format. Try again with another URL.</div>").hide().fadeIn(1000);
-        checks = false
+        checks = false;
     }
-    var request = new XMLHttpRequest();
-    request.open('GET', 'http://' + input, true);
-    request.onreadystatechange = function() {
-        if(request.readyState === 4) {
-            if(request.status === 404) {
-                $("#information").empty();
-                $(document).find("#information").append("<div class='alert alert-danger' role='alert'>The URL you entered responded with a 404 error. Try again with another URL.</div>").hide().fadeIn(1000);
-                checks = false
-            }
-        }
-    }
-    return checks
+    return checks;
 }
 
 $(document).ready(function() {

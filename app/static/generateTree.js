@@ -59,118 +59,118 @@ $(document).ready(function() {
             for(var i=0; i < data.length; i++) {
                 linksRecieved.push({title: data[i].name, link: data[i].link})
             }
+            //send AJAX request and wait for reply from the server.
+            //once recieved the JSON format, parse the json and work with it.
+            $.ajax({
+                type: 'GET',
+                url: '/getJSON',
+                contentType: 'application/json; charset=utf-8',
+                success: function(response) {
+                    var data = JSON.parse(response);
+                    //get the root directory
+                    var root = data.name;
+                    $(document).find("#tree").append("<ul id='structure'></ul>");
+                    var children = data.children;
+                    var layers = 0;
+                    var idCounter = 0;
+                    var href = "";
+                    //for each in children. check if it has children if it does then add them to a queue, and add element, otherwise add an element directly.
+                    for(var i=0;i<children.length;i++) {
+                        for(var j=0; j < linksRecieved.length; j++) {
+                            if(children[i].name == linksRecieved[j].title) {
+                                href = linksRecieved[j].link;
+                                break;
+                            }
+                        }
+                        var insert = $(document).find("#structure");
+                        if(children[i].hasOwnProperty("children")) {
+                            idCounter++;
+                            var parentID = "layer" + idCounter;
+                            var parentIDchild = "layer" + idCounter + "c"
+                            childrenQueue.push({parentID: parentID, children:children[i].children});
+                            if(children[i].name.indexOf("Title Not Found") >= 0) {
+                                insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
+                            }else {
+                                var displayName = (children[i].name).replace(/[0-9]/g, '')
+                                if(displayName == "") {
+                                    displayName = "Title not obtained by scraper";
+                                }
+                                insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
+                            }
+                            insert = $(document).find("#" + parentIDchild)
+                            insert.append("<ul class='children' id='" + parentID + "'></ul>");
+                        }else {
+                            if(children[i].name.indexOf("Title Not Found") >= 0) {
+                                insert.append("<li>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></li>");  
+                            }else {
+                                var displayName = (children[i].name).replace(/[0-9]/g, '')
+                                if(displayName == "") {
+                                    displayName = "Title not obtained by scraper";
+                                }
+                                insert.append("<li>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></li>"); 
+                            }
+                        }
+                    }
+
+                    //repeat the above stages for all chidren in the queue. 
+                    while(layers < childrenQueue.length) {
+                        layer = childrenQueue[layers];
+                        children = layer.children;
+                        var location = $(document).find("#" + layer.parentID);
+                        for(var i=0;i<children.length;i++) {
+                            for(var j=0; j < linksRecieved.length; j++) {
+                                if(children[i].name == linksRecieved[j].title) {
+                                    href = linksRecieved[j].link;
+                                    break;
+                                }
+                            }
+                            if(children[i].hasOwnProperty("children")) {
+                                idCounter++;
+                                var parentID = "layer" + idCounter;
+                                var parentIDchild = "layer" + idCounter + "c"
+                                childrenQueue.push({parentID: parentID, children:children[i].children});
+                                if(children[i].name.indexOf("Title Not Found") >= 0) {
+                                    location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
+                                }else {
+                                    var displayName = (children[i].name).replace(/[0-9]/g, '')
+                                    if(displayName == "") {
+                                        displayName = "Title not obtained by scraper";
+                                    }
+                                    location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
+                                }
+                                location = $(document).find("#" + parentIDchild)
+                                location.append("<ul class='children' id='" + parentID + "'></ul>");
+                            }else {
+                                if(children[i].name.indexOf("Title Not Found") >= 0) {
+                                    location.append("<li>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></li>");
+                                }else {
+                                    var displayName = (children[i].name).replace(/[0-9]/g, '');
+                                    if(displayName == "") {
+                                        displayName = "Title not obtained by scraper";
+                                    }
+                                    location.append("<li>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></li>");
+                                }   
+                            }
+                        }
+                        layers++;
+                    }
+                    //for all the pointers - create the interactivty of dropping down to show list of children pages if they have them.
+                    $('body').on('click', '.pointer', function(e) {
+                        this.parentElement.querySelector(".children").classList.toggle("active");
+                        this.classList.toggle("pointer-down");
+                        e.stopPropagation();
+                    });
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            }); 
         },
         error: function(error) {
             console.log(error);
         }
     });
 
-    //send AJAX request and wait for reply from the server.
-    //once recieved the JSON format, parse the json and work with it.
-    $.ajax({
-        type: 'GET',
-        url: '/getJSON',
-        contentType: 'application/json; charset=utf-8',
-        success: function(response) {
-            var data = JSON.parse(response);
-            //get the root directory
-            var root = data.name;
-            $(document).find("#tree").append("<ul id='structure'></ul>");
-            var children = data.children;
-            var layers = 0;
-            var idCounter = 0;
-            var href = "";
-            //for each in children. check if it has children if it does then add them to a queue, and add element, otherwise add an element directly.
-            for(var i=0;i<children.length;i++) {
-                for(var j=0; j < linksRecieved.length; j++) {
-                    if(children[i].name == linksRecieved[j].title) {
-                        href = linksRecieved[j].link;
-                        break;
-                    }
-                }
-                var insert = $(document).find("#structure");
-                if(children[i].hasOwnProperty("children")) {
-                    idCounter++;
-                    var parentID = "layer" + idCounter;
-                    var parentIDchild = "layer" + idCounter + "c"
-                    childrenQueue.push({parentID: parentID, children:children[i].children});
-                    if(children[i].name.indexOf("Title Not Found") >= 0) {
-                        insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
-                    }else {
-                        var displayName = (children[i].name).replace(/[0-9]/g, '')
-                        if(displayName == "") {
-                            displayName = "Title not obtained by scraper";
-                        }
-                        insert.append("<li><span class='pointer' id='" + parentIDchild + "'>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
-                    }
-                    insert = $(document).find("#" + parentIDchild)
-                    insert.append("<ul class='children' id='" + parentID + "'></ul>");
-                }else {
-                    if(children[i].name.indexOf("Title Not Found") >= 0) {
-                        insert.append("<li>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></li>");  
-                    }else {
-                        var displayName = (children[i].name).replace(/[0-9]/g, '')
-                        if(displayName == "") {
-                            displayName = "Title not obtained by scraper";
-                        }
-                        insert.append("<li>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></li>"); 
-                    }
-                }
-            }
-
-            //repeat the above stages for all chidren in the queue. 
-            while(layers < childrenQueue.length) {
-                layer = childrenQueue[layers];
-                children = layer.children;
-                var location = $(document).find("#" + layer.parentID);
-                for(var i=0;i<children.length;i++) {
-                    for(var j=0; j < linksRecieved.length; j++) {
-                        if(children[i].name == linksRecieved[j].title) {
-                            href = linksRecieved[j].link;
-                            break;
-                        }
-                    }
-                    if(children[i].hasOwnProperty("children")) {
-                        idCounter++;
-                        var parentID = "layer" + idCounter;
-                        var parentIDchild = "layer" + idCounter + "c"
-                        childrenQueue.push({parentID: parentID, children:children[i].children});
-                        if(children[i].name.indexOf("Title Not Found") >= 0) {
-                            location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
-                        }else {
-                            var displayName = (children[i].name).replace(/[0-9]/g, '')
-                            if(displayName == "") {
-                                displayName = "Title not obtained by scraper";
-                            }
-                            location.append("<li><span class='pointer' id='" + parentIDchild + "'>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></span></li>");
-                        }
-                        location = $(document).find("#" + parentIDchild)
-                        location.append("<ul class='children' id='" + parentID + "'></ul>");
-                    }else {
-                        if(children[i].name.indexOf("Title Not Found") >= 0) {
-                            location.append("<li>" + children[i].name + " - <a href='" + href + "' target='_blank'>Link</a></li>");
-                        }else {
-                            var displayName = (children[i].name).replace(/[0-9]/g, '');
-                            if(displayName == "") {
-                                displayName = "Title not obtained by scraper";
-                            }
-                            location.append("<li>" + displayName + " - <a href='" + href + "' target='_blank'>Link</a></li>");
-                        }   
-                    }
-                }
-                layers++;
-            }
-            //for all the pointers - create the interactivty of dropping down to show list of children pages if they have them.
-            $('body').on('click', '.pointer', function(e) {
-                this.parentElement.querySelector(".children").classList.toggle("active");
-                this.classList.toggle("pointer-down");
-                e.stopPropagation();
-            });
-        },
-        error: function(error) {
-            console.log(error);
-        }
-    });
 
     //if downnload button clicked then chek the input is valid if so submit the form, otherwise show them a message to say input invalid
     $("#generateButton").on("click", function(evt) {

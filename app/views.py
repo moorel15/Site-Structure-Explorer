@@ -1,8 +1,9 @@
 import json
+import robotparser
 from app import app
 from flask import render_template, redirect, request, send_file
 from .web_forms import MapURLForm, getImageForm
-from urllib2 import urlopen
+from urllib2 import urlopen, URLError
 from bs4 import BeautifulSoup
 import requests
 import requests.exceptions
@@ -29,10 +30,9 @@ def index():
     form = MapURLForm()
     if form.validate_on_submit():
         URL = form.URL.data
-        info = getRobotTxt(URL)
-        delay = info[0]
-        disallowed = info[1]
-        allowed = info[2]
+        data = getRobotTxt(URL)
+        delay = data[0]
+        disallowed = data[1]
         scrapeLimit = 0
         choice = request.form['options']
         if choice == "shallow":
@@ -91,6 +91,10 @@ def result():
     return render_template('result.html', form=form)
 
 
+@app.route('/notAccessed', methods=['GET', 'POST'])
+def notAccessed():
+    return render_template('error.html')
+
 def getRobotTxt(URL):
     # access the robots.text file and get the data requred to scrape
     lines = []
@@ -112,9 +116,7 @@ def getRobotTxt(URL):
                     if "User-agent: " in j:
                         break
                     elif not isLineEmpty(j):
-                        if "Disallow: " in j:
-                            disallowed.append(j[10:len(j)])
-                        elif "Allow: " in j:
+                        if "Allow: " in j:
                             allowed.append(j[7:len(j)])
                         elif "Crawl-delay: " in j:
                             delay = j[13:len(j)]
@@ -125,17 +127,8 @@ def getRobotTxt(URL):
     if delay == 0:
         global delay
         delay = 2000
-    returnTuple = (delay, disallowed, allowed)
+    returnTuple = (delay, allowed)
     return returnTuple
-
-
-# build a JSON transferable queue from scraping queue.
-def buildJSONQueue(scrapingQueue):
-    jsonQueue = []
-    for i in scrapingQueue:
-        json = {"name": i[1], "parent": i[0], "link": i[2]}
-        jsonQueue.append(json)
-    return jsonQueue
 
 
 # function called to build the tree.
@@ -190,6 +183,15 @@ def buildTree(startUrl, delay, disallowed, scrapeLimit):
     global finalQueue
     finalQueue = buildJSONQueue(scrapingQueue)
     return finalQueue
+
+
+# build a JSON transferable queue from scraping queue.
+def buildJSONQueue(scrapingQueue):
+    jsonQueue = []
+    for i in scrapingQueue:
+        json = {"name": i[1], "parent": i[0], "link": i[2]}
+        jsonQueue.append(json)
+    return jsonQueue
 
 
 # function to collect nodes from page.
