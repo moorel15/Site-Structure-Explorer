@@ -203,8 +203,9 @@ def collectNodes(url, scrapingQueue, local, otherSites, parent, titles):
     except(requests.exceptions.MissingSchema, requests.exceptions.ConnectionError, requests.exceptions.InvalidURL,
            requests.exceptions.InvalidSchema):
         return
-    # generate url to build links used later
+
     linksplit = urlsplit(url)
+    # split into different parts of url to check if parts are missing to form full url
     root = "{0.netloc}".format(linksplit)
     root = root.replace("www.", "")
     siteRoot = "{0.scheme}://{0.netloc}".format(linksplit)
